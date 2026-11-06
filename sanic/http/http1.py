@@ -354,6 +354,8 @@ class Http(Stream, metaclass=TouchUpMeta):
         # This header may be removed or modified by the AltSvcCheck Touchup
         # service. At server start, we either remove this header from ever
         # being assigned, or we change the value as required.
+        if self.protocol.app.config.ALT_SVC_ISOLATION:
+            self.protocol.app.state.profile_ledger.observe_response()
         headers["alt-svc"] = ""
 
         ret = format_http1_response(status, res.processed_headers)

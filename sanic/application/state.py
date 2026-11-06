@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 from sanic.application.constants import Mode, Server, ServerStage
 from sanic.log import VerbosityFilter, logger
 from sanic.server.async_server import AsyncioServer
+from sanic.touchup.materialize import ProfileMaterializationLedger
 
 
 if TYPE_CHECKING:
@@ -54,12 +55,14 @@ class ApplicationState:
     workers: int = field(default=0)
     primary: bool = field(default=True)
     server_info: list[ApplicationServerInfo] = field(default_factory=list)
+    profile_ledger: ProfileMaterializationLedger = field(init=False)
 
     # This property relates to the ApplicationState instance and should
     # not be changed except in the __post_init__ method
     _init: bool = field(default=False)
 
     def __post_init__(self) -> None:
+        self.profile_ledger = ProfileMaterializationLedger(self.app)
         self._init = True
 
     def __setattr__(self, name: str, value: Any) -> None:

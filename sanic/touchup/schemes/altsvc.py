@@ -4,6 +4,7 @@ from ast import Assign, Constant, NodeTransformer, Subscript
 from typing import TYPE_CHECKING, Any
 
 from sanic.http.constants import HTTP
+from sanic.touchup.materialize import AltSvcOutcome, Materialization
 
 from .base import BaseScheme
 
@@ -23,9 +24,18 @@ class RemoveAltSvc(NodeTransformer):
     def __init__(self, app: Sanic, verbosity: int = 0) -> None:
         self._app = app
         self._verbosity = verbosity
-        self._versions = {
-            info.settings["version"] for info in app.state.server_info
-        }
+        if app.config.ALT_SVC_ISOLATION:
+            # Freeze the listening profile at TouchUp time into an
+            # append-only materialization. Later prepare calls or TouchUp
+            # toggles cannot rewrite this observed terminal state.
+            self._materialization: Materialization | None = (
+                app.state.profile_ledger.materialize(True)
+            )
+        else:
+            self._materialization = None
+            self._versions = {
+                info.settings["version"] for info in app.state.server_info
+            }
 
     def visit_Assign(self, node: Assign) -> Any:
         if any(self._matches(target) for target in node.targets):
@@ -36,6 +46,8 @@ class RemoveAltSvc(NodeTransformer):
         return node
 
     def _should_remove(self) -> bool:
+        if self._materialization is not None:
+            return self._materialization.outcome is AltSvcOutcome.STRIPPED
         return len(self._versions) == 1
 
     @staticmethod
@@ -47,6 +59,8 @@ class RemoveAltSvc(NodeTransformer):
         )
 
     def value(self):
+        if self._materialization is not None:
+            return self._materialization.value
         values = []
         for info in self._app.state.server_info:
             port = info.settings["port"]

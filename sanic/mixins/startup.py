@@ -355,11 +355,16 @@ class StartupMixin(metaclass=SanicMeta):
             ```
         """  # noqa: E501
         if version == 3 and self.state.server_info:
-            raise RuntimeError(
+            reason = (
                 "Serving HTTP/3 instances as a secondary server is "
                 "not supported. There can only be a single HTTP/3 worker "
                 "and it must be the first instance prepared."
             )
+            if self.config.ALT_SVC_ISOLATION:
+                self.state.profile_ledger.record_rejection(
+                    HTTP(version), reason
+                )
+            raise RuntimeError(reason)
 
         if dev:
             debug = True
@@ -455,6 +460,10 @@ class StartupMixin(metaclass=SanicMeta):
         self.state.server_info.append(
             ApplicationServerInfo(settings=server_settings)
         )
+        if self.config.ALT_SVC_ISOLATION:
+            self.state.profile_ledger.record_registration(
+                server_settings["version"], server_settings["port"]
+            )
 
         # if self.config.USE_UVLOOP is True or (
         #     self.config.USE_UVLOOP is _default and not OS_IS_WINDOWS

@@ -31,6 +31,7 @@ SANIC_PREFIX = "SANIC_"
 DEFAULT_CONFIG = {
     "_FALLBACK_ERROR_FORMAT": _default,
     "ACCESS_LOG": False,
+    "ALT_SVC_ISOLATION": False,
     "AUTO_EXTEND": True,
     "AUTO_RELOAD": False,
     "EVENT_AUTOREGISTER": False,
@@ -136,6 +137,7 @@ class Config(dict, metaclass=DescriptorMeta):
     """
 
     ACCESS_LOG: bool
+    ALT_SVC_ISOLATION: bool
     AUTO_EXTEND: bool
     AUTO_RELOAD: bool
     EVENT_AUTOREGISTER: bool
